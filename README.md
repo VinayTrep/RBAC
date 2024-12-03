@@ -76,7 +76,7 @@ Replace `your_database_name`, `your_username`, and `your_password` with your MyS
 }
 ```
 **Authentication**: Required  
-**Authorization**: Only a SUPER ADMIN can add admins.
+**Authorization**: Only a SUPER ADMIN can add admins. SUPERADMIN details: email: admin@gmail.com, password: 123456
 
 ### 4. **Get All Users**
 **GET**: `http://localhost:8005/users`  
