@@ -31,6 +31,13 @@ spring.datasource.password=your_password
 
 Replace `your_database_name`, `your_username`, and `your_password` with your MySQL database details.
 
+```properties
+spring.mail.username=YOUR_EMAIL
+spring.mail.password=YOUR_PASSWORD
+```
+
+Replace `YOUR_EMAIL`,and `YOUR_PASSWORD` with your SMTP details.
+
 ---
 
 ## Running the Project
