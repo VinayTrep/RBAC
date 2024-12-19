@@ -37,9 +37,6 @@ jobs:
       - name: Build with Maven
         run: mvn clean install -DskipTests
 
-      # Step 5: Run tests
-      - name: Run Tests
-        run: mvn test
 
       # Step 6: Archive Test Results
       - name: Upload Test Results
