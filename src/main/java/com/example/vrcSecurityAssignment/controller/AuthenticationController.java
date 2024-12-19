@@ -9,6 +9,7 @@ import com.example.vrcSecurityAssignment.exception.VerifyEmailException;
 import com.example.vrcSecurityAssignment.exception.VerifyPasswordException;
 import com.example.vrcSecurityAssignment.model.User;
 import com.example.vrcSecurityAssignment.service.AuthenticationService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.regex.Matcher;
@@ -30,7 +31,7 @@ public class AuthenticationController {
     //It will validate the email and password, then send the request to service layer
     // It is responsible to send the response back to the user after signup
     @PostMapping("/signup")
-    public ResponseEntity<SignupResponseDto> register(@RequestBody RegisterUserDto registerUserDto) {
+    public ResponseEntity<SignupResponseDto> register(@RequestBody RegisterUserDto registerUserDto) throws JsonProcessingException {
         validateEmail(registerUserDto.getEmail());
         validatePassword(registerUserDto.getPassword());
         SignupResponseDto responseDto = authenticationService.signup(registerUserDto);
@@ -52,7 +53,7 @@ public class AuthenticationController {
     }
     // This endpoint is used to confirm the email
     @PostMapping("/confirm-account")
-    public ResponseEntity<String> confirmUserAccount(@RequestParam("token") String token) {
+    public ResponseEntity<String> confirmUserAccount(@RequestParam("token") String token) throws JsonProcessingException {
         return ResponseEntity.ok(authenticationService.confirmEmail(token));
     }
 

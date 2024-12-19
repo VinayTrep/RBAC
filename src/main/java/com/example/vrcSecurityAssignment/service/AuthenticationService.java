@@ -1,7 +1,9 @@
 package com.example.vrcSecurityAssignment.service;
 
 
+import com.example.vrcSecurityAssignment.config.MessagePublisher;
 import com.example.vrcSecurityAssignment.dtos.LoginUserDto;
+import com.example.vrcSecurityAssignment.dtos.MailMessageDto;
 import com.example.vrcSecurityAssignment.dtos.RegisterUserDto;
 import com.example.vrcSecurityAssignment.dtos.SignupResponseDto;
 import com.example.vrcSecurityAssignment.exception.*;
@@ -12,6 +14,8 @@ import com.example.vrcSecurityAssignment.model.constants.RoleName;
 import com.example.vrcSecurityAssignment.repository.ConfirmationTokenRepository;
 import com.example.vrcSecurityAssignment.repository.RoleRepository;
 import com.example.vrcSecurityAssignment.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,7 +33,7 @@ public class AuthenticationService {
 
     private final AuthenticationManager authenticationManager;
 
-    private final EmailService emailService;
+    private final MessagePublisher messagePublisher;
 
     private final ConfirmationTokenRepository confirmationTokenRepository;
     private final RoleRepository roleRepository;
@@ -37,18 +41,18 @@ public class AuthenticationService {
     public AuthenticationService(
             UserRepository userRepository,
             AuthenticationManager authenticationManager,
-            PasswordEncoder passwordEncoder, EmailService emailService, ConfirmationTokenRepository confirmationTokenRepository, RoleRepository roleRepository
+            PasswordEncoder passwordEncoder, MessagePublisher messagePublisher, ConfirmationTokenRepository confirmationTokenRepository, RoleRepository roleRepository
     ) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
+        this.messagePublisher = messagePublisher;
 
         this.confirmationTokenRepository = confirmationTokenRepository;
         this.roleRepository = roleRepository;
     }
 
-    public SignupResponseDto signup(RegisterUserDto input) {
+    public SignupResponseDto signup(RegisterUserDto input) throws JsonProcessingException {
         //check if the email already exists in our system
         checkEmailExists(input.getEmail());
 
@@ -65,12 +69,15 @@ public class AuthenticationService {
         ConfirmationToken confirmationToken = createConfirmationToken(user);
 
         //  logic send email to the user to confirm their email address
-        SimpleMailMessage mailMessage = new SimpleMailMessage();
-        mailMessage.setTo(user.getEmail());
-        mailMessage.setSubject("Complete Registration!");
-        mailMessage.setText("To confirm your account, please click here : "
+        MailMessageDto mailMessageDto = new MailMessageDto();
+        mailMessageDto.setFrom("vinaytrep2021@gmail.com");
+        mailMessageDto.setTo(user.getEmail());
+        mailMessageDto.setSubject("RBAC: Confirm your email");
+        mailMessageDto.setBody("To confirm your account, please click here : "
                 +"http://localhost:8005/auth/confirm-account?token="+confirmationToken.getConfirmationToken());
-        emailService.sendEmail(mailMessage);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String mailMessage = objectMapper.writeValueAsString(mailMessageDto);
+        messagePublisher.sendNotification(mailMessage);
 
         return new SignupResponseDto(user.getFullName(), user.getEmail(), confirmationToken.getConfirmationToken(),user.getRole().getName().toString());
     }
@@ -101,7 +108,7 @@ public class AuthenticationService {
                 .orElseThrow( () -> new UserNotFoundException("User Not Found"));
     }
 
-    public String confirmEmail(String confirmationToken) throws UserNotFoundException, VerifyEmailException {
+    public String confirmEmail(String confirmationToken) throws UserNotFoundException, VerifyEmailException, JsonProcessingException {
         ConfirmationToken token = confirmationTokenRepository.findByConfirmationToken(confirmationToken).orElseThrow(
                 () -> new InvalidTokenException("Confirmation Token not found")
         );
@@ -111,6 +118,16 @@ public class AuthenticationService {
             User user = userRepository.findByEmailIgnoreCase(token.getEmail()).orElseThrow(() -> new UserNotFoundException("User doesn't exist"));
             user.setEnabled(true);
             userRepository.save(user);
+
+            //  logic send email to the user to confirm their email address
+            MailMessageDto mailMessageDto = new MailMessageDto();
+            mailMessageDto.setFrom("vinaytrep2021@gmail.com");
+            mailMessageDto.setTo(user.getEmail());
+            mailMessageDto.setSubject("RBAC: Verification confirmed");
+            mailMessageDto.setBody("Email verified successfully!");
+            ObjectMapper objectMapper = new ObjectMapper();
+            String mailMessage = objectMapper.writeValueAsString(mailMessageDto);
+            messagePublisher.sendNotification(mailMessage);
             return "Email verified successfully!";
         }
         throw new VerifyEmailException("Error: Couldn't verify email");
